@@ -3,44 +3,37 @@ import pandas as pd
 import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import linear_kernel
+import os
+
+st.write("FILES:", os.listdir())
+
 
 # Step 1: Load and Prepare Data
-@st.cache_data
+@st.cache_resource
 def load_data():
     df = pd.read_csv("Fashion Dataset.csv")
 
-    # Basic cleaning
     df = df.dropna(subset=['p_id', 'name'])
-    df['brand'] = df['brand'].fillna('Unknown')
-    df['colour'] = df['colour'].fillna('Unknown')
-    df['ratingCount'] = df['ratingCount'].fillna(0)
-    df['avg_rating'] = df['avg_rating'].fillna(df['avg_rating'].mean())
-    df['description'] = df['description'].fillna('')
-    df['p_attributes'] = df['p_attributes'].fillna('')
+    df['brand'].fillna('Unknown', inplace=True)
+    df['colour'].fillna('Unknown', inplace=True)
+    df['ratingCount'].fillna(0, inplace=True)
+    df['avg_rating'].fillna(df['avg_rating'].mean(), inplace=True)
+    df['description'].fillna('', inplace=True)
+    df['p_attributes'].fillna('', inplace=True)
 
-    # Feature Engineering (add price bucket)
-    df['price'] = pd.to_numeric(df['price'], errors='coerce')
-    df['price'] = df['price'].fillna(df['price'].median())
-
-    df['price_bucket'] = pd.cut(df['price'],
-                               bins=3,
-                               labels=['low', 'medium', 'high'])
-
-    # Combine textual features
     df['text_features'] = (
-        df['brand'].astype(str) + ' ' +
-        df['colour'].astype(str) + ' ' +
-        df['price_bucket'].astype(str) + ' ' +   # ✅ NEW
-        df['description'].astype(str) + ' ' +
-        df['p_attributes'].astype(str)
+        df['brand'] + ' ' +
+        df['colour'] + ' ' +
+        df['description'] + ' ' +
+        df['p_attributes']
     )
 
-    # TF-IDF
-    tfidf = TfidfVectorizer(stop_words='english', max_features=4000)
+    tfidf = TfidfVectorizer(stop_words='english', max_features=1500)  # reduce load
     tfidf_matrix = tfidf.fit_transform(df['text_features'])
 
-    # Popularity score (log scaled)
-    df['popularity_score'] = df['avg_rating'] * np.log1p(df['ratingCount'])
+    # ✅ NO full similarity matrix here
+
+    df['popularity_score'] = df['avg_rating'] * df['ratingCount']
     df['popularity_norm'] = df['popularity_score'] / df['popularity_score'].max()
 
     return df, tfidf_matrix
@@ -65,7 +58,6 @@ def hybrid_recommend(product_name, top_n=5, alpha=0.7):
         return None
     idx = idx[0]
 
-    # ✅ Compute similarity ONLY for selected product
     content_scores = linear_kernel(tfidf_matrix[idx:idx+1], tfidf_matrix).flatten()
 
     df_temp = df.copy()
@@ -79,9 +71,7 @@ def hybrid_recommend(product_name, top_n=5, alpha=0.7):
 
     df_temp = df_temp.drop(index=idx)
 
-    recommendations = df_temp.sort_values('hybrid_score', ascending=False).head(top_n)
-
-    return recommendations
+    return df_temp.sort_values('hybrid_score', ascending=False).head(top_n)
 
 # Step 3: Streamlit UI 
 st.set_page_config(page_title="Fashion Recommender", layout="centered")
