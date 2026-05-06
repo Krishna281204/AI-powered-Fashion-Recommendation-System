@@ -39,56 +39,40 @@ def load_data():
     tfidf = TfidfVectorizer(stop_words='english', max_features=4000)
     tfidf_matrix = tfidf.fit_transform(df['text_features'])
 
-    # Similarity
-    cosine_sim = linear_kernel(tfidf_matrix, tfidf_matrix)
-
     # Popularity score (log scaled)
     df['popularity_score'] = df['avg_rating'] * np.log1p(df['ratingCount'])
     df['popularity_norm'] = df['popularity_score'] / df['popularity_score'].max()
 
-    return df, cosine_sim
+    return df, tfidf_matrix
 
-df, cosine_sim = load_data()
+df, tfidf_matrix = load_data()
 
 # Step 2: Hybrid Recommender
-def hybrid_recommend(product_name, top_n=5, alpha=0.7, same_brand=False):
-    # Find product index
-    idx_list = df[df['name'].str.lower() == product_name.lower()].index
+from sklearn.metrics.pairwise import linear_kernel
 
-    if len(idx_list) == 0:
+def hybrid_recommend(product_name, top_n=5, alpha=0.7):
+    idx = df[df['name'].str.lower() == product_name.lower()].index
+    if len(idx) == 0:
         return None
+    idx = idx[0]
 
-    idx = idx_list[0]
+    # ✅ Compute similarity ONLY for selected product
+    content_scores = linear_kernel(tfidf_matrix[idx:idx+1], tfidf_matrix).flatten()
 
-    # Get similarity scores for selected product
-    content_scores = cosine_sim[idx]
-
-    # Hybrid score
-    hybrid_scores = alpha * content_scores + (1 - alpha) * df['popularity_norm'].values
-
-    # Create temp dataframe with scores 
     df_temp = df.copy()
-
     df_temp['content_score'] = content_scores
-    df_temp['pop_score'] = df['popularity_norm']
-    df_temp['final_score'] = hybrid_scores
+    df_temp['pop_score'] = df_temp['popularity_norm']
 
-    # Remove the selected product
-    df_temp = df_temp[df_temp.index != idx]
+    df_temp['hybrid_score'] = (
+        alpha * df_temp['content_score'] +
+        (1 - alpha) * df_temp['pop_score']
+    )
 
-    # Optional filter: same brand
-    if same_brand:
-        selected_brand = df.loc[idx, 'brand']
-        df_temp = df_temp[df_temp['brand'] == selected_brand]
+    df_temp = df_temp.drop(index=idx)
 
-    # Sort by final score
-    df_temp = df_temp.sort_values(by='final_score', ascending=False)
+    recommendations = df_temp.sort_values('hybrid_score', ascending=False).head(top_n)
 
-    # Return top N
-    return df_temp.head(top_n)[
-        ['name', 'brand', 'price', 'avg_rating', 'ratingCount',
-         'content_score', 'pop_score']
-    ]
+    return recommendations
 
 # Step 3: Streamlit UI 
 st.set_page_config(page_title="Fashion Recommender", layout="centered")

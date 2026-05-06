@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # 🛍️ AI-Powered Fashion Recommender System
 
 ## 📌 Overview
@@ -134,3 +135,6 @@ fashion-recommender-system/
 ## 👤 Author
 
 Krishna Sharma
+=======
+# AI-powered-Fashion-Recommendation-System
+>>>>>>> b6c8611f971359746682fb9e5a869f0a24989c1b
