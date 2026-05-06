@@ -22,11 +22,13 @@ def load_data():
     df['p_attributes'].fillna('', inplace=True)
 
     df['text_features'] = (
-        df['brand'] + ' ' +
-        df['colour'] + ' ' +
-        df['description'] + ' ' +
-        df['p_attributes']
-    )
+    df['brand'].fillna('').astype(str) + ' ' +
+    df['colour'].fillna('').astype(str) + ' ' +
+    df['description'].fillna('').astype(str) + ' ' +
+    df['p_attributes'].fillna('').astype(str)
+)
+    df['text_features'] = df['text_features'].fillna('')
+    df = df[df['text_features'].notna()]
 
     tfidf = TfidfVectorizer(stop_words='english', max_features=1500)  # reduce load
     tfidf_matrix = tfidf.fit_transform(df['text_features'])
