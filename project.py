@@ -59,15 +59,12 @@ def hybrid_recommend(product_name, top_n=5, alpha=0.7, same_brand=False):
     if len(idx) == 0:
         return None
     idx = idx[0]
-    selected_brand = str(df.loc[idx, 'brand']).lower()
-    df_temp['brand'] = df_temp['brand'].astype(str).str.lower()
-
-    if same_brand:
-        df_temp = df_temp[df_temp['brand'] == selected_brand]
 
     content_scores = linear_kernel(tfidf_matrix[idx:idx+1], tfidf_matrix).flatten()
 
+    # MUST BE HERE (before any use)
     df_temp = df.copy()
+
     df_temp['content_score'] = content_scores
     df_temp['pop_score'] = df_temp['popularity_norm']
 
@@ -77,6 +74,10 @@ def hybrid_recommend(product_name, top_n=5, alpha=0.7, same_brand=False):
     )
 
     df_temp = df_temp.drop(index=idx)
+
+    # normalize brands
+    selected_brand = str(df.loc[idx, 'brand']).lower()
+    df_temp['brand'] = df_temp['brand'].astype(str).str.lower()
 
     if same_brand:
         df_temp = df_temp[df_temp['brand'] == selected_brand]
