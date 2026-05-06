@@ -59,7 +59,11 @@ def hybrid_recommend(product_name, top_n=5, alpha=0.7, same_brand=False):
     if len(idx) == 0:
         return None
     idx = idx[0]
-    selected_brand = df.loc[idx, 'brand']
+    selected_brand = str(df.loc[idx, 'brand']).lower()
+    df_temp['brand'] = df_temp['brand'].astype(str).str.lower()
+
+    if same_brand:
+        df_temp = df_temp[df_temp['brand'] == selected_brand]
 
     content_scores = linear_kernel(tfidf_matrix[idx:idx+1], tfidf_matrix).flatten()
 
@@ -110,7 +114,8 @@ if st.button("🔍 Get Recommendations"):
         recommendations = hybrid_recommend(
             selected_product,
             top_n=top_n,
-            alpha=alpha
+            alpha=alpha,
+            same_brand=same_brand
         )
 
         if recommendations is None:
