@@ -45,7 +45,16 @@ def load_data():
 
     return df, tfidf_matrix
 
-df, tfidf_matrix = load_data()
+try:
+    df, tfidf_matrix = load_data()
+
+    # rest of your app code here
+
+except Exception as e:
+    import streamlit as st
+    st.error(f"Error: {e}")
+    import traceback
+    st.text(traceback.format_exc())
 
 # Step 2: Hybrid Recommender
 from sklearn.metrics.pairwise import linear_kernel
