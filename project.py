@@ -54,11 +54,12 @@ except Exception as e:
 # Step 2: Hybrid Recommender
 from sklearn.metrics.pairwise import linear_kernel
 
-def hybrid_recommend(product_name, top_n=5, alpha=0.7):
+def hybrid_recommend(product_name, top_n=5, alpha=0.7, same_brand=False):
     idx = df[df['name'].str.lower() == product_name.lower()].index
     if len(idx) == 0:
         return None
     idx = idx[0]
+    selected_brand = df.loc[idx, 'brand']
 
     content_scores = linear_kernel(tfidf_matrix[idx:idx+1], tfidf_matrix).flatten()
 
@@ -72,6 +73,9 @@ def hybrid_recommend(product_name, top_n=5, alpha=0.7):
     )
 
     df_temp = df_temp.drop(index=idx)
+
+    if same_brand:
+        df_temp = df_temp[df_temp['brand'] == selected_brand]
 
     return df_temp.sort_values('hybrid_score', ascending=False).head(top_n)
 
