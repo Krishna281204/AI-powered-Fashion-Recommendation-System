@@ -106,8 +106,7 @@ if st.button("🔍 Get Recommendations"):
         recommendations = hybrid_recommend(
             selected_product,
             top_n=top_n,
-            alpha=alpha,
-            same_brand=same_brand
+            alpha=alpha
         )
 
         if recommendations is None:
